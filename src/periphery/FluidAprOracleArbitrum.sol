@@ -6,6 +6,10 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {IBase4626Compounder} from "@periphery/Bases/4626Compounder/IBase4626Compounder.sol";
 import {ILendingResolver, ILiquidtyResolver, IDexResolver} from "src/interfaces/FluidInterfaces.sol";
 import {IChainlinkCalcs} from "src/interfaces/IChainlinkCalcs.sol";
+import {console2} from "forge-std/console2.sol";
+interface IChainlink {
+    function latestAnswer() external view returns (int256);
+}
 
 contract FluidAprOracleArbitrum {
     struct ArbRewardRate {
@@ -57,6 +61,8 @@ contract FluidAprOracleArbitrum {
     address internal constant fUSDT = 0x4A03F37e7d3fC243e3f99341d36f4b829BEe5E03;
 
     address internal constant ARB = 0x912CE59144191C1204E64559FE8253a0e49E6548;
+
+    IChainlink internal constant ARB_FEED = IChainlink(0xb2A824043730FE05F3DA2efaFa1CBbe83fa548D6);
 
     ArbRewardRate public arbRewardRate;
 
@@ -297,7 +303,7 @@ contract FluidAprOracleArbitrum {
         }
 
         ArbRewardRate memory currentArbRewardRate = arbRewardRate;
-        if (currentArbRewardRate.endTimeStamp > block.timestamp) {
+        if (currentArbRewardRate.endTimeStamp < block.timestamp) {
             return 0;
         }
 
@@ -318,7 +324,7 @@ contract FluidAprOracleArbitrum {
             _assets += tokenDetails.totalAssets * 1e12;
         }
 
-        uint256 arbPrice = CHAINLINK_CALCS.getPriceUsdc(ARB) * 1e12;
+        uint256 arbPrice = uint256(ARB_FEED.latestAnswer()) * 1e10;
 
         arbRewardApr = (currentArbRewardRate.rewardRate * 365 * arbPrice) / _assets;
     }
